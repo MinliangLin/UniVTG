@@ -10,8 +10,8 @@ from run_on_video import clip, vid2clip, txt2clip
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--save_dir', type=str, default='./tmp')
-parser.add_argument('--resume', type=str, default='./results/omni/model_best.ckpt')
-parser.add_argument("--gpu_id", type=int, default=2)
+parser.add_argument('--resume', type=str, default='./results/model_best_pt_ft.ckpt')
+parser.add_argument("--gpu_id", type=int, default=0)
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 
@@ -235,4 +235,4 @@ with gr.Blocks(css=css) as demo:
 
 
 demo.queue(concurrency_count=10)
-demo.launch(height='800px', server_port=2253, debug=True, share=True)
+demo.launch(height='800px', server_port=2253, debug=True, share=False)
