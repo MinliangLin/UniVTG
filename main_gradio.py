@@ -215,9 +215,10 @@ with gr.Blocks(css=css) as demo:
 
         examples = gr.Examples(
             examples=[
-                # ["./examples/youtube.mp4"], 
-                ["./examples/charades.mp4"], 
-                # ["./examples/ego4d.mp4"],
+                ['./data/short_v1/1000224705_173.mp4'],
+                ['./data/short_v1/1000237838_13.mp4'],
+                ['./data/short_v1/1000244065_21.mp4'],
+                ['./data/short_v1/1260022015_5.mp4'],
             ],
             inputs=[video_inp],
         )
@@ -235,4 +236,4 @@ with gr.Blocks(css=css) as demo:
 
 
 demo.queue(concurrency_count=10)
-demo.launch(height='800px', server_port=2253, debug=True, share=False)
+demo.launch(height='800px', server_port=2253)
