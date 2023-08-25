@@ -1,8 +1,9 @@
 import argparse
 import os
-import pdb
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
 
@@ -14,6 +15,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("--save_dir", type=str, default="./tmp")
 parser.add_argument("--resume", type=str, default="./results/model_best_pt_ft.ckpt")
 parser.add_argument("--gpu_id", type=int, default=0)
+parser.add_argument("--prompt", type=str, default='interesting')
 args = parser.parse_args()
 
 model_version = "ViT-B/32"
@@ -45,22 +47,21 @@ clip_model, _ = clip.load(model_version, device=args.gpu_id, jit=False)
 
 
 def load_data(save_dir):
-    vid = np.load(os.path.join(save_dir, "vid.npz"))["features"].astype(np.float32)
-    txt = np.load(os.path.join(save_dir, "txt.npz"))["features"].astype(np.float32)
+    vid = np.load(Path(save_dir) / "vid.npz")["features"].astype(np.float32)
+    txt = np.load(Path(save_dir) / "txt.npz")["features"].astype(np.float32)
 
     vid = torch.from_numpy(l2_normalize_np_array(vid))
     txt = torch.from_numpy(l2_normalize_np_array(txt))
-    ctx_l = min(vid.shape[0], 100)
+    ctx_l = vid.shape[0]
 
     timestamp = (
         ((torch.arange(0, ctx_l) + clip_len / 2) / ctx_l).unsqueeze(1).repeat(1, 2)
     )
 
-    if True:
-        tef_st = torch.arange(0, ctx_l, 1.0) / ctx_l
-        tef_ed = tef_st + 1.0 / ctx_l
-        tef = torch.stack([tef_st, tef_ed], dim=1)  # (Lv, 2)
-        vid = torch.cat([vid, tef], dim=1)  # (Lv, Dv+2)
+    tef_st = torch.arange(0, ctx_l, 1.0) / ctx_l
+    tef_ed = tef_st + 1.0 / ctx_l
+    tef = torch.stack([tef_st, tef_ed], dim=1)  # (Lv, 2)
+    vid = torch.cat([vid, tef], dim=1)  # (Lv, Dv+2)
 
     src_vid = vid.unsqueeze(0).cuda()
     src_txt = txt.unsqueeze(0).cuda()
@@ -87,17 +88,11 @@ def forward(model, save_dir, query):
         )
 
     # prepare the model prediction
-    pred_logits = output["pred_logits"][0].cpu()
-    pdb.set_trace()
-    pred_spans = output["pred_spans"][0].cpu()
+    # pred_logits = output["pred_logits"][0].cpu()
+    # pred_spans = output["pred_spans"][0].cpu()
     pred_saliency = output["saliency_scores"].cpu()
 
-    # prepare the model prediction
-    pred_windows = (pred_spans + timestamp) * ctx_l * clip_len
-    pred_confidence = pred_logits
-
-    # grounding
-    top1_window = pred_windows[torch.argmax(pred_confidence)].tolist()
+    pd.DataFrame({'saliency': pred_saliency.flatten()}).to_csv(save_dir + '/sailency.csv', index=False)
 
 
 def extract_vid(vid_path):
@@ -114,7 +109,7 @@ def main(path):
     if False:
         extract_txt('interesting')
         extract_vid(path)
-    forward()
+    forward(vtg_model, args.save_dir, args.prompt)
 
 if __name__ == '__main__':
     main('/home/ubuntu/UniVTG/data/1260064971/1260064971.mp4')
