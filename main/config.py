@@ -215,7 +215,7 @@ class BaseOptions(object):
     def parse(self, args=None):
         if not self.initialized:
             self.initialize()
-        opt = self.parser.parse_args()
+        opt = self.parser.parse_args([])
         
         if args is not None:
             args_dict = vars(args)
