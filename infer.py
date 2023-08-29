@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("--save_dir", type=str, default="./tmp")
 parser.add_argument("--resume", type=str, default="./results/model_best_pt_ft.ckpt")
 parser.add_argument("--gpu_id", type=int, default=0)
-parser.add_argument("--prompt", type=str, default='interesting')
+parser.add_argument("--prompt", type=str, default='This is an interesting scence.')
 args = parser.parse_args()
 
 model_version = "ViT-B/32"
@@ -38,7 +38,7 @@ def load_model():
         )
         opt.lr_warmup = [warmup_steps, total_steps]
 
-    model, criterion, _, _ = setup_model(opt)
+    model, _, _, _ = setup_model(opt)
     return model
 
 
@@ -96,7 +96,7 @@ def forward(model, save_dir, query):
 
 
 def extract_vid(vid_path):
-    vid_features = vid2clip(clip_model, vid_path, args.save_dir)
+    vid_features = vid2clip(clip_model, vid_path, args.save_dir, clip_len=1)
     return vid_features
 
 
@@ -106,10 +106,9 @@ def extract_txt(txt):
 
 
 def main(path):
-    if False:
-        extract_txt('interesting')
-        extract_vid(path)
+    extract_txt(args.prompt)
+    extract_vid(path)
     forward(vtg_model, args.save_dir, args.prompt)
 
 if __name__ == '__main__':
-    main('/home/ubuntu/UniVTG/data/1260064971/1260064971.mp4')
+    main('/home/ubuntu/UniVTG/data/1260022902/1260022902.mp4')

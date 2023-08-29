@@ -97,6 +97,8 @@ class VideoLoader(Dataset):
                         print(duration, fps)
                 except Exception:
                     fps = self.framerate
+                if not self.centercrop:
+                    width, height = self.size, self.size
                 cmd = (
                     ffmpeg
                     .input(video_path)
