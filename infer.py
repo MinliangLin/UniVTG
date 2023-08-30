@@ -69,7 +69,7 @@ def load_data(save_dir):
 
 
 def infer(model, save_dir):
-    out_path = Path(save_dir) / "sailency.csv"
+    out_path = Path(save_dir) / "saliency_v2.csv"
     if out_path.exists():
         return
     src_vid, src_txt, src_vid_mask, src_txt_mask, timestamp, ctx_l = load_data(save_dir)
@@ -88,7 +88,9 @@ def infer(model, save_dir):
         )
 
     pred_saliency = output["saliency_scores"].cpu()
-    df = pd.DataFrame({"saliency": pred_saliency.flatten()})
+    pred_logits = output['pred_logits'][0].cpu()
+    print(output['pred_logits'].shape)
+    df = pd.DataFrame({"saliency": pred_saliency.flatten(), "logit": pred_logits.flatten()})
     df.to_csv(out_path, index=False)
 
 
