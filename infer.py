@@ -1,6 +1,27 @@
 import argparse
 from pathlib import Path
 
+parser = argparse.ArgumentParser(description="")
+parser.add_argument("--save_dir", type=Path, default="./tmp")
+parser.add_argument("--resume", type=str, default="./results/model_best_pt_ft.ckpt")
+parser.add_argument("--gpu_id", type=int, default=0)
+parser.add_argument("--clip_len", type=float, default=1)
+parser.add_argument("--query", type=str, default="interesting")
+parser.add_argument(
+    "--video",
+    type=Path,
+    default="/home/ubuntu/UniVTG/data/1260022902/1260022902_video.mp4",
+)
+args = parser.parse_args()
+
+content_id = args.video.stem
+args.save_dir = args.save_dir / content_id
+args.save_dir.mkdir(exist_ok=True)
+
+if (args.save_dir / "saliency_v2.csv").exists():
+    print(args.save_dir, "exists")
+    exit()
+
 import numpy as np
 import pandas as pd
 import torch
@@ -9,23 +30,6 @@ import torch.backends.cudnn as cudnn
 from main.config import TestOptions, setup_model
 from run_on_video import clip, txt2clip, vid2clip
 from utils.basic_utils import l2_normalize_np_array
-
-parser = argparse.ArgumentParser(description="")
-parser.add_argument("--save_dir", type=str, default="./tmp")
-parser.add_argument("--resume", type=str, default="./results/model_best_pt_ft.ckpt")
-parser.add_argument("--gpu_id", type=int, default=0)
-parser.add_argument("--clip_len", type=float, default=1)
-parser.add_argument("--query", type=str, default="interesting")
-parser.add_argument(
-    "--video",
-    type=str,
-    default="/home/ubuntu/UniVTG/data/1260022902/1260022902_video.mp4",
-)
-args = parser.parse_args()
-content_id = Path(args.video).stem
-args.save_dir = Path(args.save_dir) / content_id
-args.save_dir.mkdir(exist_ok=True)
-
 
 clip_model_version = "ViT-B/32"
 clip_len = args.clip_len
@@ -45,8 +49,8 @@ clip_model, _ = clip.load(clip_model_version, device=args.gpu_id, jit=False)
 
 
 def load_data(save_dir):
-    vid = np.load(Path(save_dir) / "vid.npz")["features"].astype(np.float32)
-    txt = np.load(Path(save_dir) / "txt.npz")["features"].astype(np.float32)
+    vid = np.load(save_dir / "vid.npz")["features"].astype(np.float32)
+    txt = np.load(save_dir / "txt.npz")["features"].astype(np.float32)
 
     vid = torch.from_numpy(l2_normalize_np_array(vid))
     txt = torch.from_numpy(l2_normalize_np_array(txt))
@@ -70,7 +74,7 @@ def load_data(save_dir):
 
 
 def infer(model, save_dir):
-    out_path = Path(save_dir) / "saliency_v2.csv"
+    out_path = save_dir / "saliency_v2.csv"
     if out_path.exists():
         return
     src_vid, src_txt, src_vid_mask, src_txt_mask, timestamp, ctx_l = load_data(save_dir)
@@ -89,21 +93,23 @@ def infer(model, save_dir):
         )
 
     pred_saliency = output["saliency_scores"].cpu()
-    pred_logits = output['pred_logits'][0].cpu()
-    print(output['pred_logits'].shape)
-    df = pd.DataFrame({"saliency": pred_saliency.flatten(), "logit": pred_logits.flatten()})
+    pred_logits = output["pred_logits"][0].cpu()
+    print(output["pred_logits"].shape)
+    df = pd.DataFrame(
+        {"saliency": pred_saliency.flatten(), "logit": pred_logits.flatten()}
+    )
     df.to_csv(out_path, index=False)
 
 
 def extract_vid(vid_path):
-    if not (Path(args.save_dir) / "vid.npz").exists():
-        vid_features = vid2clip(clip_model, vid_path, args.save_dir, clip_len=clip_len)
+    if not (args.save_dir / "vid.npz").exists():
+        vid_features = vid2clip(clip_model, str(vid_path), str(args.save_dir), clip_len=clip_len)
         return vid_features
 
 
 def extract_txt(txt):
-    if not (Path(args.save_dir) / "txt.npz").exists():
-        txt_features = txt2clip(clip_model, txt, args.save_dir)
+    if not (args.save_dir / "txt.npz").exists():
+        txt_features = txt2clip(clip_model, txt, str(args.save_dir))
         return txt_features
 
 
